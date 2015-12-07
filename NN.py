@@ -1,7 +1,5 @@
 #Evolutionary Simulation of Neural Networks
 
-#IDEA: Possible that offspring are receiving the same inputs as their parent 
-
 import math
 import random
 import pygame
@@ -10,33 +8,25 @@ BACKGROUND = (255, 255, 255)
 (SCREENBOUNDX, SCREENBOUNDY) = (1300, 800)
 screen = pygame.display.set_mode((SCREENBOUNDX, SCREENBOUNDY))
 
-#pygame.font.init()
+Food = [] #The food pool
+Agents = [] #The agent pool
+TotalFitness = 0 #The total fitness of all the agent
+MostFood = 0 #The most food any one agent has collected
 
-#myfont = pygame.font.SysFont("Comic Sans MS", 13)
+Update = True #Are we updating the simulation?
+Ticks = 0 #The clock of the simulation
+WhenToUpdate = 1 #Changes the speed of the simulation
+Select = 0 #The selected agent
 
-
-Food = []
-
-count = 0
+#Initialization of the food 
 for i in range (5):
 	Food.append([random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205, 0)])
-	
-Agents = []
-true = 0
-Update = True
-Spawn = 0
-WhenToUpdate = 1
-TotalFitness = 0
-MostFood = 0
-Select = 0
 
-Clock = pygame.time.Clock()
-
-
+Clock = pygame.time.Clock() #FPS 
 
 class Agent:
-	def __init__(self, Input, Hidden, Output, posx, posy, WeightsIH, WeightsHO, Health, Color, fitness = 0):
-		self.Input = Input #The Input nodes
+	def __init__(self, Input, Hidden, Output, WeightsIH, WeightsHO, Color, posx =  random.randint(0, SCREENBOUNDX), posy = random.randint(0, SCREENBOUNDY)):
+		self.Input = Input #The Input nodess
 		self.Hidden = Hidden #The Hidden nodes 
 		self.Output = Output #The Output nodes
 		self.WeightsIH = WeightsIH #The weights from Input to Hidden
@@ -48,11 +38,11 @@ class Agent:
 		self.LookAtx = 0 #The look at vector of the agent
 		self.LookAty = 0 #The look at vector of the agent
 		self.Rotation = 0
-		self.Health = Health
-		self.Ticks = 0
+		self.Health = 4000
+		self.Clock = 0
 		self.FoodColl = 0
 		self.Color = Color
-		self.fitness = fitness
+		self.fitness = 0
 	def createNeuralNetwork(self): #This function creates the neural networks of each individual agent, since all connections are implied, only the weights need to be assigned
 		for i in range (len(self.Input)):
 			for j in range(len(self.Hidden)):
@@ -60,55 +50,42 @@ class Agent:
 		for k in range (len(self.Hidden)):
 			for l in range (len(self.Output)):
 				self.WeightsHO.append(random.uniform(-2,2))
-		
+
 def Initialize(agents): #This function initalizes all of the agents, the parameter agents defines how many agents there will be
 	for i in range(agents):
-		Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY),[],[], 4000, (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225))))
+		Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[],[], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225))))
 		Agents[i].createNeuralNetwork() #Initialize the agent then create its neural network
 
-def Add():
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY),[],[], 4000,(random.randint(0, 225), random.randint(0, 225), random.randint(0, 225))))
-	Agents[len(Agents) - 1].createNeuralNetwork()
-
-def AddFood():
+def AddFood(): #Adds a food randomly 
 	Food.append([random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205 ,0)])
 	
-def Reproduction(agent):
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.posx, agent.posy, agent.WeightsIH, agent.WeightsHO, 4000 , agent.Color, agent.fitness))
-
-	#for i in range(len(agent1.WeightsIH) - 1):
-	#	Agents[len(Agents) - 1].WeightsIH[i] = (agent1.WeightsIH[i] + agent2.WeightsIH[i])/2
-	#for j in range(len(agent1.WeightsHO) - 1):
-	#	Agents[len(Agents) - 1].WeightsHO[j] = (agent1.WeightsHO[j] + agent2.WeightsHO[j])/2
+def Add(): #Randomly adds a random agent 
+	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[],[], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225))))
+	Agents[len(Agents) - 1].createNeuralNetwork()	
 	
-def Replicate(agent):
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.posx, agent.posy ,agent.WeightsIH,agent.WeightsHO, 4000, agent.Color))
+def Clone(agent): #Clones an agent
+	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHO, agent.Color, agent.posx, agent.posy))
 	
+def Replicate(agent): #Clones the agent and mutates it
+	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHO, agent.Color, agent.posx, agent.posy))
 	
 	Agents[len(Agents) - 1].WeightBIAS1 += random.uniform(-0.1, 0.1)
-	
-	
 	Agents[len(Agents) - 1].WeightBIAS2 += random.uniform(-0.1, 0.1)
 
 	for i in range(len(Agents[len(Agents) - 1].WeightsIH)):
-		
-		
 		Agents[len(Agents) - 1].WeightsIH[i] += random.uniform(-0.1, 0.1)
 			
 	for i in range(len(Agents[len(Agents) - 1].WeightsHO)):
-		
-		
 		Agents[len(Agents) - 1].WeightsHO[i] += random.uniform(-0.1, 0.1)
 
 
 def Sigmoid(activation, p = 1.0): #The sigmoid function calculates the outputs of the neurons based on the activation
-	
 	return 1/(1 + math.e**(-activation /p))
 
 def CalcDistance(Pos1, Pos2):
 	return math.sqrt((Pos1[0]-Pos2[0]) ** 2 + (Pos1[1] - Pos2[1]) ** 2)
 	
-def ClosestFood(AgentPosx, AgentPosy, Food):
+def ClosestFood(AgentPosx, AgentPosy, Food): #Finds the closest food in the food pool 
 	ClosestDistance = 99999999
 	ClosestIndex = 99999999
 	for i in range (len(Food)):
@@ -117,20 +94,19 @@ def ClosestFood(AgentPosx, AgentPosy, Food):
 			ClosestDistance = ((AgentPosx - Food[i][0]) ** 2 + (AgentPosy - Food[i][1]) ** 2)
 	return ClosestIndex
 		
-def Clamp(Num, min, max):
+def Clamp(Num, min, max): #Clamps a variable, so it never goes above or below the max and min values respectively 
 	if Num > max:
 		Num = max
 	if Num < min:
 		Num = min
 	return Num
 	
-def Normalise(vector):
+def Normalise(vector): #Normalise function
 	v = math.sqrt((vector[0]**2 + vector[1]**2))
-	
 	
 	return [vector[0]/v, vector[1]/v]	
 
-def Roulette(TotalFitness, Agent):
+def Roulette(TotalFitness, Agent): #Picks agents out of the agent pool based on their fitness
 	slice = random.randint(0, TotalFitness)
 	
 	CurrentSlice = 0
@@ -143,7 +119,7 @@ def Roulette(TotalFitness, Agent):
 			break;
 	return Choose
 	
-def Chromosome(Hidden, Output):
+def Chromosome(Hidden, Output): #Copies the chromosome from an agent into a usable array 
 	Chromosome = []
 	for i in range(len(Hidden)):
 		Chromosome.append(Hidden[i])
@@ -151,7 +127,7 @@ def Chromosome(Hidden, Output):
 		Chromosome.append(Output[i])
 	return Chromosome
 
-def PushChromosome(Chromosome, Agent):
+def PushChromosome(Chromosome, Agent): #Pushes the chromosome into an empty agent
 	Hidden = []
 
 	for i in range(len(Agent.WeightsIH)):
@@ -163,7 +139,7 @@ def PushChromosome(Chromosome, Agent):
 	Agent.WeightsIH = Hidden
 	Agent.WeightsHO = Output
 
-def FindBestFitness(Agents):
+def FindBestFitness(Agents): #Finds the agent with the best fitness
 	CurrentBestFitness = -999999999
 	Index = 0
 	for i in range(len(Agents)):
@@ -172,8 +148,7 @@ def FindBestFitness(Agents):
 			Index = i
 	return Index
 
-def Mutate(Chromosome, MutationRate):
-
+def Mutate(Chromosome, MutationRate): #Mutation function 
 	for i in range(len(Chromosome)):
 		Mutate = random.random()
 		if Mutate < MutationRate:
@@ -181,13 +156,14 @@ def Mutate(Chromosome, MutationRate):
 
 	return Chromosome
 
-	
+
 Initialize(10) #Initialize 10 agents
 
 Generation = 0
 Running = True
 
 while Running:
+	#Checks for key presses, for simulation interaction
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			Running = False 
@@ -209,77 +185,76 @@ while Running:
 				if Select < 0:
 					Select = 0
 	
+	#FPS
 	Clock.tick()
 	pygame.display.set_caption(str(Clock.get_fps()))
 	
-	#Neural network computations
-	Spawn += 1
-	if len(Food) <= 0:
+	Ticks += 1 #The clock of the simulation 
+	if len(Food) <= 0: #Checks if there is zero food in the environment
 		for i in range(5):
 			AddFood()
-	if Spawn % 100 == 0:
+	
+	#Adds food every 100 simulation ticks 
+	if Ticks % 100 == 0:
 		AddFood()
-	if Spawn % 1999 == 0:
-		Best = FindBestFitness(Agents)
-		Reproduction(Agents[Best])
-		Reproduction(Agents[Best])
-	if Spawn % 2000 == 0:
+	
+	#Crossover and bisexual reproduction	
+	if Ticks % 2000 == 0:
+	
+		#Print out statistics for that generation
+		print "Epoch: ", Generation
+		print TotalFitness/len(Agents), "Average Fitness"
+		print "Agents: ", len(Agents)
+		print "-----------------------"
+		print " "
+		
+		Best = FindBestFitness(Agents) #This bit creates more of the best agents, to maximize their chances of being selected for bisexual 									reproduction
+		Clone(Agents[Best])
+		Clone(Agents[Best])
+		
 		for i in Agents:
 			i.fitness = 0
 		Generation += 1
 		for i in range(3):
-			Mum = Agents[Roulette(TotalFitness, Agents)] 
+			Mum = Agents[Roulette(TotalFitness, Agents)] #Selecting the agents 
 			Dad = Agents[Roulette(TotalFitness, Agents)]
 			
-			#while Dad == Mum:
-			#	Dad = Agents[Roulette(TotalFitness, Agents)]
-			
-			Mum2 = Chromosome(Mum.WeightsIH, Mum.WeightsHO)
-
+			Mum2 = Chromosome(Mum.WeightsIH, Mum.WeightsHO) #Stripping their chromosomes 
 			Dad2 = Chromosome(Dad.WeightsIH, Dad.WeightsHO)
 			
-			#crossover
-			child1 = []
+			#Crossover
+			child1 = [] #Creating the children chromosomes
 			child2 = []
 
-			for p in range(len(Mum2)):
+			for p in range(len(Mum2)): #Filling the children chromosomes 
 				child1.append(0)
 				child2.append(0)
 			
-
+			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[], [],  (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))))
+			Agents[len(Agents) - 1].createNeuralNetwork() #Creating the children
 			
-			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY) ,[], [], 4000, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))))
+			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [], [],  (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))))
 			Agents[len(Agents) - 1].createNeuralNetwork()
 			
-			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY) ,[], [], 4000, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))))
-			Agents[len(Agents) - 1].createNeuralNetwork()
 			
-			
-			CrossoverPoint = random.randint(0, 24)
-			for k in range(CrossoverPoint):
+			CrossoverPoint = random.randint(0, 24) #Selecting the crossover point for the reproduction 
+			for k in range(CrossoverPoint):  #Selecting genes from both the mother and the father
 				child1[k] = Mum2[k]
 				child2[k] = Dad2[k]
 			for j in range(CrossoverPoint, 24):
-
-
 				child1[j] = Dad2[j]
 				child2[j] = Mum2[j]
 			
-			child1 = Mutate(child1, 0.1), "child1"
-			child2 = Mutate(child2, 0.1), "child2"
+			child1 = Mutate(child1, 0.1) #Mutating the children
+			child2 = Mutate(child2, 0.1)
 			
-
-			
-			PushChromosome(child1[0], Agents[len(Agents) - 1])
-			PushChromosome(child2[0], Agents[len(Agents) - 2])
-			
-		print "Generation: ", Generation
-		print TotalFitness/len(Agents), "Average Fitness"
-		#for i in range(12):
-		#	del Agents[0]
+			PushChromosome(child1, Agents[len(Agents) - 1]) #Pushing the chromosomes into the children agents
+			PushChromosome(child2, Agents[len(Agents) - 2])
 			
 	TotalFitness = 0
 	for i in range(len(Agents)):
+		
+		#This is where the inputs are
 		
 		InputFOOD = Food[ClosestFood(Agents[i].posx, Agents[i].posy, Food)]
 		
@@ -291,10 +266,14 @@ while Running:
 		Agents[i].Input[3] = Agents[i].LookAty		
 	
 		counter = -1
+		
+		#Neural network computations
+		
 		for j in range (len(Agents[i].Hidden)):
 			
 			for k in range (len(Agents[i].Input)):
 				counter += 1
+
 				Agents[i].Hidden[j] += Agents[i].Input[k] * Agents[i].WeightsIH[(counter)]
 			Agents[i].Hidden[j] -= Agents[i].WeightBIAS1
 			Agents[i].Hidden[j] = Sigmoid(Agents[i].Hidden[j])
@@ -308,13 +287,18 @@ while Running:
 			Agents[i].Output[j] -= Agents[i].WeightBIAS2			
 			Agents[i].Output[j] = Sigmoid(Agents[i].Output[j])	
 		TotalFitness += Agents[i].fitness		
-		Agents[i].Ticks += 1
-	for i in range(len(Agents)):
-		lTrack = Agents[i].Output[0]
-		rTrack = Agents[i].Output[1]
+		Agents[i].Clock += 1
 		
-		RotForce = lTrack - rTrack
+		if Agents[i].Clock % 5 == 0:
+			Agents[i].fitness -= 1
+			Agents[i].fitness = Clamp(Agents[i].fitness, 0, 100000000)
 	
+	#Actually moving the agents
+	for i in range(len(Agents)):
+		lTrack = Agents[i].Output[0] #How much it will move to the left
+		rTrack = Agents[i].Output[1] #How much it will move to the right
+		
+		RotForce = lTrack - rTrack 
 		RotForce = Clamp(RotForce, -1, 1)
 		
 		Agents[i].Rotation += RotForce
@@ -328,18 +312,24 @@ while Running:
 				
 		FoodToDelete = []
 		
+		#Checks if an agent has touched food, if it has, then remove the food and give the agent some health
+		
 		for k in range (len(Food)):
 			if CalcDistance([Agents[i].posx, Agents[i].posy], Food[k]) < 13:
-				FoodToDelete.append(k)
-				Agents[i].Health += 1000
-				Agents[i].FoodColl += 1
-				Agents[i].fitness = Agents[i].FoodColl * 100
+				FoodToDelete.append(k) #Deleting the food
+				Agents[i].Health += 1000 #Adding health 
+				Agents[i].Health = Clamp(Agents[i].Health, -100, 4000)
+				Agents[i].FoodColl += 1 #Adding to the food collected counter
+				Agents[i].fitness = Agents[i].FoodColl * 100 #Increasing the fitness
 		for i in range (len(FoodToDelete)):
-			del Food[FoodToDelete[i] - i]
+			del Food[FoodToDelete[i] - i] 
 	
 		if len(Agents) == 0:
 			for i in range(5):
 				Add()
+				
+		#If the agent moves out of the screen, just bring him in on the opposite side, kinda like pac-man?
+		
 		if Agents[i].posx > SCREENBOUNDX:
 			Agents[i].posx = 0
 		
@@ -355,8 +345,9 @@ while Running:
 		if Update:
 			screen.fill(BACKGROUND)
 				
-		BestAgent = -123
+		BestAgent = -99999999
 		BestAgentIndex = 0
+		
 	if Update:
 		for j in range(len(Food)):
 			pygame.draw.circle(screen, Food[j][2], (int (Food[j][0]), int(Food[j][1])), 5)
@@ -373,6 +364,8 @@ while Running:
 		
 		AgentsToDelete = []
 	
+	#Displaying the neural network
+	
 	counter = -1
 	for i in range(len(Agents[Select].Input)):
 		for j in range(len(Agents[Select].Hidden)):
@@ -383,7 +376,7 @@ while Running:
 		for j in range(len(Agents[0].Output)):
 			counter += 1
 			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 650), (1025 + j * 50, 600), int(Agents[Select].WeightsHO[counter] * 2) + 1)
-			
+	
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[0] * 500, 0, 255), 0, 0), (975, 700), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[1] * 500, 0, 255), 0, 0), (1025, 700), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[2] * 500, 0, 255), 0, 0), (1075, 700), 10)
@@ -395,16 +388,9 @@ while Running:
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[0] * 200, 0, 255), 0, 0), (1025, 600), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[1] * 200, 0, 255), 0, 0), (1075, 600), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[2] * 300, 0, 255), 0, 0), (1125, 600), 10)
-	for i in range(len(Agents)):
-		
-		if Agents[i].Health > 4000:
-			Agents[i].Health = 4000
-		
-		if Update:
-			
-			
 	
-			
+	for i in range(len(Agents)):
+		if Update:
 			pygame.draw.line(screen, (255,0,0), (Agents[i].posx, Agents[i].posy), (Agents[i].posx + Agents[i].LookAtx * 20, Agents[i].posy + Agents[i].LookAty * 20))
 
 			if i == Select:
@@ -416,20 +402,12 @@ while Running:
 				pygame.draw.circle(screen, (Agents[i].Color), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 7)
 		
 		Agents[i].Health -= 5
-		
-		if Agents[i].Ticks > 2000:
-			Agents[i].Ticks = 0
 			
-			
-		
-		#Agents[i].Ticks += 1.5
-		if Agents[i].FoodColl >= 5:
-			#Replicate(Agents[i])
-				
-			#Agents[i].Ticks = 0
+		if Agents[i].FoodColl >= 6: #If the agent collects more than 6 pieces of food, it asexually reproduces
+			Replicate(Agents[i])
 			Agents[i].FoodColl = 0
 				
-		if Agents[i].Health <= 0:
+		if Agents[i].Health <= 0: 
 			AgentsToDelete.append(i)
 			
 			
@@ -440,7 +418,8 @@ while Running:
 	if len(Agents) == 0:
 		for i in range(5):
 			Add()
-		
-	for i in range(WhenToUpdate):
-		if Update:
-			pygame.display.flip()
+			
+	if WhenToUpdate > 0:	
+		if Ticks % WhenToUpdate == 0: 
+			if Update:
+				pygame.display.flip()
