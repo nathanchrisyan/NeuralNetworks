@@ -31,7 +31,7 @@ SpeciesSelect = False #The selected species
 
 #Initialization of the food 
 for i in range (5):
-	Food.append(Food[5, random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205, 0)])
+	Food.append([random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205, 0)])
 
 Clock = pygame.time.Clock() #FPS 
 
@@ -63,13 +63,6 @@ class Agent:
 			for l in range (len(self.Output)):
 				self.WeightsHO.append(random.uniform(-4,4))
 
-class Food:
-	def __init__(self, Size, posx, posy, color):
-		self.Size = Size
-		self.posx = posx 
-		self.posy = posy
-		self.color = color
-		
 def Clear():
 	os.system("clear") 
 
@@ -82,7 +75,7 @@ def Initialize(agents): #This function initalizes all of the agents, the paramet
 
 
 def AddFood(): #Adds a food randomly 
-	Food.append(Food[5, random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205 ,0)])
+	Food.append([random.randint(0, SCREENBOUNDX), random.randint(0, SCREENBOUNDY), (225, 205 ,0)])
 	
 def Add(): #Randomly adds a random agent 
 	global AgentCounter
@@ -457,6 +450,7 @@ while Running:
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[0] * 200, 0, 255), 0, 0), (1025, 600), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[1] * 200, 0, 255), 0, 0), (1075, 600), 10)
 	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[2] * 300, 0, 255), 0, 0), (1125, 600), 10)
+
 	
 	for i in range(len(Agents)):
 		if Agents[i].Color == Agents[Select].Color and (SpeciesSelect == True):
