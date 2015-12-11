@@ -3,6 +3,7 @@
 import math
 import random
 import pygame
+from pygame import gfxdraw
 import os
 
 pygame.init()
@@ -36,12 +37,14 @@ for i in range (5):
 Clock = pygame.time.Clock() #FPS 
 
 class Agent:
-	def __init__(self, Input, Hidden, Output, WeightsIH, WeightsHO, Color, species,posx = random.randint(0, SCREENBOUNDX), posy = random.randint(0, SCREENBOUNDY)):
+	def __init__(self, Input,Hidden, Hidden2 , Output, WeightsIH, WeightsHH, WeightsHO, Color,posx = random.randint(0, SCREENBOUNDX), posy = random.randint(0, SCREENBOUNDY), species = 0):
 		self.Input = Input #The Input nodess
 		self.Hidden = Hidden #The Hidden nodes 
+		self.Hidden2 = Hidden2 #The second Hidden layer
 		self.Output = Output #The Output nodes
 		self.WeightsIH = WeightsIH #The weights from Input to Hidden
-		self.WeightsHO = WeightsHO #The weights from Hidden to Output
+		self.WeightsHH = WeightsHH #The weights from Hidden to second Hidden layer
+		self.WeightsHO = WeightsHO #The weights from the second Hidden layer to the Output layer
 		self.WeightBIAS1 = random.uniform(-1, 1)
 		self.WeightBIAS2 = random.uniform(-1, 1)
 		self.posx = posx #The y coordinate of the agent
@@ -60,7 +63,10 @@ class Agent:
 			for j in range(len(self.Hidden)):
 				self.WeightsIH.append(random.uniform(-4,4))
 		for k in range (len(self.Hidden)):
-			for l in range (len(self.Output)):
+			for l in range (len(self.Hidden2)):
+				self.WeightsHH.append(random.uniform(-4,4))
+		for p in range (len(self.Hidden2)):
+			for h in range (len(self.Output)):
 				self.WeightsHO.append(random.uniform(-4,4))
 
 def Clear():
@@ -70,7 +76,7 @@ def Initialize(agents): #This function initalizes all of the agents, the paramet
 	global AgentCounter
 	for i in range(agents):
 		AgentCounter += 1
-		Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[],[], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225)), AgentCounter))
+		Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [0,0,0],[],[], [], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225)), AgentCounter))
 		Agents[i].createNeuralNetwork() #Initialize the agent then create its neural network
 
 
@@ -80,19 +86,19 @@ def AddFood(): #Adds a food randomly
 def Add(): #Randomly adds a random agent 
 	global AgentCounter
 	AgentCounter += 1
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[],[], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225)), AgentCounter))
+	Agents.append(Agent([0,0,0,0,0], [0,0,0],[0,0,0], [0,0,0],[],[], [], (random.randint(0, 225), random.randint(0, 225), random.randint(0, 225)), AgentCounter))
 	Agents[len(Agents) - 1].createNeuralNetwork()	
 
 	
 def Clone(agent): #Clones an agent
 	global AgentCounter
 	AgentCounter += 1
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHO, agent.Color, agent.posx, agent.posy, agent.species))
+	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[0,0,0], agent.WeightsIH, agent.WeightsHH, agent.WeightsHO, agent.Color, agent.posx, agent.posy, agent.species))
 	
 def Replicate(agent): #Clones the agent and mutates it
 	global AgentCounter
 	AgentCounter += 1	
-	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHO, agent.Color, agent.posx, agent.posy, agent.species))
+	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHH ,agent.WeightsHO, agent.Color, agent.posx, agent.posy, agent.species))
 	PushChromosome(Mutate(Chromosome(Agents[len(Agents) - 1].WeightsIH, Agents[len(Agents)- 1].WeightsHO)), Agents[len(Agents)-1])
 		
 def Sigmoid(activation, p = 1.0): #The sigmoid function calculates the outputs of the neurons based on the activation
@@ -100,6 +106,15 @@ def Sigmoid(activation, p = 1.0): #The sigmoid function calculates the outputs o
 
 def CalcDistance(Pos1, Pos2):
 	return math.sqrt((Pos1[0]-Pos2[0]) ** 2 + (Pos1[1] - Pos2[1]) ** 2)
+	
+def ClosestAgent(Pos1, Pos2, Agents):
+	closest = 10000000
+	index = 0
+	for i in range(len(Agents)):
+		if CalcDistance((Pos1, Pos2), (Agents[i].posx, Agents[i].posy))	< closest:
+			closest = CalcDistance((Pos1, Pos2), (Agents[i].posx, Agents[i].posy))
+			index = i
+	return i
 	
 def ClosestFood(AgentPosx, AgentPosy, Food): #Finds the closest food in the food pool 
 	ClosestDistance = 99999999
@@ -184,7 +199,15 @@ while Running:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			Running = False 
-		if event.type == pygame.KEYDOWN:
+		
+		elif event.type == pygame.MOUSEBUTTONDOWN:
+			Select = ClosestAgent(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1], Agents)
+			print Select
+			#Select += 1
+		elif event.type == pygame.MOUSEBUTTONUP:
+			pass
+			
+		elif event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_d:
 				Update = (True, False)[Update]
 			elif event.key == pygame.K_s:
@@ -265,7 +288,7 @@ while Running:
 		TotalFitness = Clamp(TotalFitness, 1, 10000000000)
 			
 		Generation += 1
-		for i in range(3):
+		for i in range(2):
 			MumNum = Roulette(TotalFitness, Agents) #Selecting the agents 
 			DadNum = Roulette(TotalFitness, Agents)
 			
@@ -285,10 +308,10 @@ while Running:
 				child1.append(0)
 				child2.append(0)
 			
-			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0],[], [], (Mum.Color), Mum.species))
+			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [0,0,0],[], [], [], (Mum.Color), Mum.species))
 			Agents[len(Agents) - 1].createNeuralNetwork() #Creating the children
 			
-			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [], [],  (Mum.Color), Mum.species))
+			Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [0,0,0], [], [],[],  (Mum.Color), Mum.species))
 			Agents[len(Agents) - 1].createNeuralNetwork()
 			
 			
@@ -303,8 +326,8 @@ while Running:
 			child1 = Mutate(child1, 0.1) #Mutating the children
 			child2 = Mutate(child2, 0.1)
 			
-			PushChromosome(child1, Agents[len(Agents) - 1]) #Pushing the chromosomes into the children agents
-			PushChromosome(child2, Agents[len(Agents) - 2])
+			Agents[len(Agents) - 1] = PushChromosome(child1, Agents[len(Agents) - 1]) #Pushing the chromosomes into the children agents
+			Agents[len(Agents) - 1] = PushChromosome(child2, Agents[len(Agents) - 2])
 			
 			Best = FindBestFitness(Agents) 
 			Agents[Best].fitness /= 2
@@ -344,12 +367,23 @@ while Running:
 			Agents[i].Hidden[j] = Sigmoid(Agents[i].Hidden[j])
 	
 		counter = -1
-		for j in range(len(Agents[i].Output)):
+		
+		for j in range(len(Agents[i].Hidden2)):
 			for k in range(len(Agents[i].Hidden)):
 				counter += 1
-				Agents[i].Output[j] += Agents[i].Hidden[k] * Agents[i].WeightsHO[counter]
+				Agents[i].Hidden2[j] += Agents[i].Hidden[k] * Agents[i].WeightsHH[counter]
+			Agents[i].Hidden2[j] -= Agents[i].WeightBIAS2			
+			Agents[i].Hidden2[j] = Sigmoid(Agents[i].Hidden2[j])	
+		
+		counter = -1
+		
+		for j in range(len(Agents[i].Output)):
+			for k in range(len(Agents[i].Hidden2)):
+				counter += 1
+				Agents[i].Output[j] += Agents[i].Hidden2[k] * Agents[i].WeightsHO[counter]
 			Agents[i].Output[j] -= Agents[i].WeightBIAS2			
 			Agents[i].Output[j] = Sigmoid(Agents[i].Output[j])	
+		
 		TotalFitness += Agents[i].fitness		
 		Agents[i].Clock += 1
 		
@@ -432,24 +466,33 @@ while Running:
 	for i in range(len(Agents[Select].Input)):
 		for j in range(len(Agents[Select].Hidden)):
 			counter += 1
-			pygame.draw.line(screen, (0,0,0), (975 + i * 50 , 700), (1025 + j * 50 , 650), int(Agents[Select].WeightsIH[counter]) + 1)
+			pygame.draw.line(screen, (0,0,0), (1025 + i * 25 , 700), (1025 + j * 50 , 660), int(Agents[Select].WeightsIH[counter]) + 1)
 	counter = -1
 	for i in range(len(Agents[0].Hidden)):
+		for j in range(len(Agents[0].Hidden2)):
+			counter += 1
+			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 660), (1025 + j * 50, 620), int(Agents[Select].WeightsHH[counter]) + 1)
+	counter = -1
+	
+	for i in range(len(Agents[0].Hidden2)):
 		for j in range(len(Agents[0].Output)):
 			counter += 1
-			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 650), (1025 + j * 50, 600), int(Agents[Select].WeightsHO[counter]) + 1)
+			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 620), (1025 + j * 50, 580), int(Agents[Select].WeightsHO[counter]) + 1)
 	
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[0] * 500, 0, 255), 0, 0), (975, 700), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[1] * 500, 0, 255), 0, 0), (1025, 700), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[2] * 500, 0, 255), 0, 0), (1075, 700), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[3] * 500, 0, 255), 0, 0), (1125, 700), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[4] * 500, 0, 255), 0, 0), (1175, 700), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[0] * 500, 0, 255), 0, 0), (1025, 650), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[1] * 500, 0, 255), 0, 0), (1075, 650), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[2] * 500, 0, 255), 0, 0), (1125, 650), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[0] * 200, 0, 255), 0, 0), (1025, 600), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[1] * 200, 0, 255), 0, 0), (1075, 600), 10)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[2] * 300, 0, 255), 0, 0), (1125, 600), 10)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[0] * 500, 0, 255), 0, 0), (1025, 700), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[1] * 500, 0, 255), 0, 0), (1050, 700), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[2] * 500, 0, 255), 0, 0), (1075, 700), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[3] * 500, 0, 255), 0, 0), (1100, 700), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[4] * 500, 0, 255), 0, 0), (1125, 700), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[0] * 500, 0, 255), 0, 0), (1025, 660), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[1] * 500, 0, 255), 0, 0), (1075, 660), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[2] * 500, 0, 255), 0, 0), (1125, 660), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[0] * 500, 0, 255), 0, 0), (1025, 620), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[1] * 500, 0, 255), 0, 0), (1075, 620), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[2] * 500, 0, 255), 0, 0), (1125, 620), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[0] * 300, 0, 255), 0, 0), (1025, 580), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[1] * 300, 0, 255), 0, 0), (1075, 580), 9)
+	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[2] * 300, 0, 255), 0, 0), (1125, 580), 9)
 
 	
 	for i in range(len(Agents)):
@@ -458,17 +501,23 @@ while Running:
 	
 	for i in range(len(Agents)):
 		if Update:
-			pygame.draw.line(screen, (255,0,0), (Agents[i].posx, Agents[i].posy), (Agents[i].posx + Agents[i].LookAtx * 20, Agents[i].posy + Agents[i].LookAty * 20))
+			pygame.draw.line(screen, (255,0,0), (Agents[i].posx, Agents[i].posy), (Agents[i].posx + Agents[i].LookAtx * 15, Agents[i].posy + Agents[i].LookAty * 15))
 
 			if i == Select:
-				toUpdate.append(pygame.draw.circle(screen, (255,0,0), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 9, 1))
+				#toUpdate.append(pygame.gfxdraw.aacircle(screen, int(Agents[i].posx/1), int(Agents[i].posy/1), 8,  (255,0,0)))
+				toUpdate.append(pygame.draw.circle(screen, (0,0,0), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 9, 1))
 				toUpdate.append(pygame.draw.circle(screen, (Agents[i].Color), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 8))
-				toUpdate.append(pygame.draw.circle(screen, (0,0,0), (int(Agents[i].posx) + 20, int(Agents[i].posy)), 2))
+				toUpdate.append(pygame.draw.circle(screen, (0,0,0), (int(Agents[i].posx) + 15, int(Agents[i].posy)-10), 2))
+				toUpdate.append(pygame.draw.circle(screen, (int(255 - (255 * (Agents[i].Health/4000.0))), int(255 * (Agents[i].Health/4000.0)), 0), (int(Agents[i].posx) + 15, int(Agents[i].posy) + 10), 4))
+				
 			else:
 				toUpdate.append(pygame.draw.circle(screen, (0,0,255), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 8, 1))
-				toUpdate.append(pygame.draw.circle(screen, (Agents[i].Color), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 7))
+				toUpdate.append(pygame.draw.circle(screen,(Agents[i].Color), (int(Agents[i].posx/1), int(Agents[i].posy/1)), 7))
+				#toUpdate.append(pygame.gfxdraw.aacircle(screen, int(Agents[i].posx/1), int(Agents[i].posy/1), 7, (Agents[i].Color)))
+				toUpdate.append(pygame.draw.circle(screen, (int(255 - (255 * (Agents[i].Health/4000.0))), int(255 * (Agents[i].Health/4000.0)), 0), (int(Agents[i].posx) + 15, int(Agents[i].posy)), 4))
+				#print Agents[i].Health
 		
-		Agents[i].Health -= 4
+		Agents[i].Health -= 7
 			
 		if Agents[i].FoodColl >= 6: #If the agent collects more than 6 pieces of food, it asexually reproduces
 			Replicate(Agents[i])
@@ -481,7 +530,7 @@ while Running:
 	for i in range(len(AgentsToDelete)):
 		del Agents[AgentsToDelete[i] - i]
 		if len(Agents) == 0:
-			for i in range(5):
+			for i in range(10):
 				Add()
 		if Select > len(Agents):
 			Select = len(Agents) - 1
