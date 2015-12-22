@@ -68,6 +68,7 @@ class Agent:
 		for p in range (len(self.Hidden2)):
 			for h in range (len(self.Output)):
 				self.WeightsHO.append(random.uniform(-4,4))
+		#print self.WeightsHH
 
 def Clear():
 	os.system("clear") 
@@ -99,7 +100,7 @@ def Replicate(agent): #Clones the agent and mutates it
 	global AgentCounter
 	AgentCounter += 1	
 	Agents.append(Agent([0,0,0,0,0], [0,0,0], [0,0,0], [0,0,0], agent.WeightsIH, agent.WeightsHH ,agent.WeightsHO, agent.Color, agent.posx, agent.posy, agent.species))
-	PushChromosome(Mutate(Chromosome(Agents[len(Agents) - 1].WeightsIH, Agents[len(Agents)- 1].WeightsHO)), Agents[len(Agents)-1])
+	PushChromosome(Mutate(Chromosome(Agents[len(Agents) - 1].WeightsIH, Agents[len(Agents) - 1].WeightsHH, Agents[len(Agents)- 1].WeightsHO)), Agents[len(Agents)-1])
 		
 def Sigmoid(activation, p = 1.0): #The sigmoid function calculates the outputs of the neurons based on the activation
 	return 1/(1 + math.e**(-activation /p))
@@ -150,24 +151,34 @@ def Roulette(TotalFitness, Agent): #Picks agents out of the agent pool based on 
 			break;
 	return Choose
 	
-def Chromosome(Hidden, Output): #Copies the chromosome from an agent into a usable array 
+def Chromosome(Hidden, Hidden2, Output): #Copies the chromosome from an agent into a usable array 
 	Chromosome = []
 	for i in range(len(Hidden)):
 		Chromosome.append(Hidden[i])
+	
+	for i in range(len(Hidden2)):
+		Chromosome.append(Hidden2[i])
+		
 	for i in range(len(Output)):
 		Chromosome.append(Output[i])
+		
 	return Chromosome
 
 def PushChromosome(Chromosome, Agent): #Pushes the chromosome into an empty agent
 	Hidden = []
 
 	for i in range(len(Agent.WeightsIH)):
-		
 		Hidden.append(Chromosome[i])
+	
+	Hidden2 = []
+	for j in range(i, len(Agent.WeightsIH) + len(Agent.WeightsHH)):
+		Hidden2.append(Chromosome[j])	
+		
 	Output = []
-	for j in range(len(Agent.WeightsHO), len(Chromosome)):
-		Output.append(Chromosome[j])
+	for k in range(j, len(Chromosome)):
+		Output.append(Chromosome[k])
 	Agent.WeightsIH = Hidden
+	Agent.WeightsHH = Hidden2
 	Agent.WeightsHO = Output
 	return Agent
 
@@ -297,8 +308,10 @@ while Running:
 			
 			Agents[DadNum].species = Agents[MumNum].species
 			
-			Mum2 = Chromosome(Mum.WeightsIH, Mum.WeightsHO) #Stripping their chromosomes 
-			Dad2 = Chromosome(Dad.WeightsIH, Dad.WeightsHO)
+			Mum2 = Chromosome(Mum.WeightsIH, Mum.WeightsHH, Mum.WeightsHO) #Stripping their chromosomes 
+			Dad2 = Chromosome(Dad.WeightsIH, Mum.WeightsHH, Dad.WeightsHO)
+			#print Agents[MumNum].WeightsHO, "WEIGHTS HH MUM"
+			#print Mum.WeightsHO, "WEIGHTS HO MUM2"
 			
 			#Crossover
 			child1 = [] #Creating the children chromosomes
@@ -327,7 +340,9 @@ while Running:
 			child2 = Mutate(child2, 0.1)
 			
 			Agents[len(Agents) - 1] = PushChromosome(child1, Agents[len(Agents) - 1]) #Pushing the chromosomes into the children agents
-			Agents[len(Agents) - 1] = PushChromosome(child2, Agents[len(Agents) - 2])
+			Agents[len(Agents) - 2] = PushChromosome(child2, Agents[len(Agents) - 2])
+			
+			#print Agents[len(Agents) - 1].WeightsHH, "WEIGHTS HH"
 			
 			Best = FindBestFitness(Agents) 
 			Agents[Best].fitness /= 2
@@ -361,7 +376,6 @@ while Running:
 		for j in range (len(Agents[i].Hidden)):
 			for k in range (len(Agents[i].Input)):
 				counter += 1
-
 				Agents[i].Hidden[j] += Agents[i].Input[k] * Agents[i].WeightsIH[(counter)]
 			Agents[i].Hidden[j] -= Agents[i].WeightBIAS1
 			Agents[i].Hidden[j] = Sigmoid(Agents[i].Hidden[j])
@@ -466,34 +480,31 @@ while Running:
 	for i in range(len(Agents[Select].Input)):
 		for j in range(len(Agents[Select].Hidden)):
 			counter += 1
-			pygame.draw.line(screen, (0,0,0), (1025 + i * 25 , 700), (1025 + j * 50 , 660), int(Agents[Select].WeightsIH[counter]) + 1)
+			pygame.draw.line(screen, (0,0,0), (1025 + (1125 - 1025)/(len(Agents[Select].Input) - 1) * i , 700), (1025 + (1125 - 1025)/(len(Agents[Select].Hidden) - 1) * j , 660), int(Agents[Select].WeightsIH[counter]) + 1)
 	counter = -1
 	for i in range(len(Agents[0].Hidden)):
 		for j in range(len(Agents[0].Hidden2)):
 			counter += 1
-			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 660), (1025 + j * 50, 620), int(Agents[Select].WeightsHH[counter]) + 1)
+			pygame.draw.line(screen, (0,0,0), (1025 + (1125 - 1025)/(len(Agents[Select].Hidden2) - 1) * i, 660), (1025 + (1125 - 1025)/(len(Agents[Select].Hidden2) - 1) * j, 620), int(Agents[Select].WeightsHH[counter]) + 1)
 	counter = -1
 	
 	for i in range(len(Agents[0].Hidden2)):
 		for j in range(len(Agents[0].Output)):
 			counter += 1
-			pygame.draw.line(screen, (0,0,0), (1025 + i * 50, 620), (1025 + j * 50, 580), int(Agents[Select].WeightsHO[counter]) + 1)
-	
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[0] * 500, 0, 255), 0, 0), (1025, 700), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[1] * 500, 0, 255), 0, 0), (1050, 700), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[2] * 500, 0, 255), 0, 0), (1075, 700), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[3] * 500, 0, 255), 0, 0), (1100, 700), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Input[4] * 500, 0, 255), 0, 0), (1125, 700), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[0] * 500, 0, 255), 0, 0), (1025, 660), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[1] * 500, 0, 255), 0, 0), (1075, 660), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[2] * 500, 0, 255), 0, 0), (1125, 660), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[0] * 500, 0, 255), 0, 0), (1025, 620), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[1] * 500, 0, 255), 0, 0), (1075, 620), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[2] * 500, 0, 255), 0, 0), (1125, 620), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[0] * 300, 0, 255), 0, 0), (1025, 580), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[1] * 300, 0, 255), 0, 0), (1075, 580), 9)
-	pygame.draw.circle(screen, (Clamp(Agents[Select].Output[2] * 300, 0, 255), 0, 0), (1125, 580), 9)
+			pygame.draw.line(screen, (0,0,0), (1025 + (1125 - 1025)/(len(Agents[Select].Output) - 1) * i, 620), (1025 + (1125 - 1025)/(len(Agents[Select].Output) - 1) * j, 580), int(Agents[Select].WeightsHO[counter]) + 1)
 
+	for i in range(len(Agents[Select].Input)):
+		pygame.draw.circle(screen, (Clamp(Agents[Select].Input[i] * 500, 0, 255), 0, 0), (1025 + (1125 - 1025)/(len(Agents[Select].Input) - 1) * i, 700), 9)
+	
+	for i in range(len(Agents[Select].Hidden)):
+		pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden[i] * 500, 0, 255), 0, 0), (1025 + (1125 - 1025)/(len(Agents[Select].Hidden) - 1) * i, 660), 9)
+	
+	for i in range(len(Agents[Select].Hidden2)):
+		pygame.draw.circle(screen, (Clamp(Agents[Select].Hidden2[i] * 500, 0, 255), 0, 0), (1025 + (1125 - 1025)/(len(Agents[Select].Hidden2) - 1) * i, 620), 9)
+
+	for i in range(len(Agents[Select].Output)):
+		pygame.draw.circle(screen, (Clamp(Agents[Select].Output[i] * 500, 0, 255), 0, 0), (1025 + (1125 - 1025)/(len(Agents[Select].Output) - 1) * i, 580), 9)
+	
 	
 	for i in range(len(Agents)):
 		if Agents[i].Color == Agents[Select].Color and (SpeciesSelect == True):
@@ -517,7 +528,7 @@ while Running:
 				toUpdate.append(pygame.draw.circle(screen, (int(255 - (255 * (Agents[i].Health/4000.0))), int(255 * (Agents[i].Health/4000.0)), 0), (int(Agents[i].posx) + 15, int(Agents[i].posy)), 4))
 				#print Agents[i].Health
 		
-		Agents[i].Health -= 7
+		Agents[i].Health -= 4
 			
 		if Agents[i].FoodColl >= 6: #If the agent collects more than 6 pieces of food, it asexually reproduces
 			Replicate(Agents[i])
